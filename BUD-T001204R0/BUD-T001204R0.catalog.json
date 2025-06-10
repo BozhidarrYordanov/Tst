@@ -1,0 +1,337 @@
+{
+  "id": "BUD-<<<TENANT_ID>>>",
+  "technicalName": "BUD",
+  "name": "BUD",
+  "description": "",
+  "owner": "<<<TENANT_ID>>>",
+  "inputs": [
+    {
+      "id": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+      "name": "AutopilotServiceUser",
+      "description": null,
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "owner": null,
+      "version": 1,
+      "keys": {},
+      "values": {},
+      "tags": {}
+    },
+    {
+      "id": "BUD-<<<TENANT_ID>>>:JIRAUserCredentials:1",
+      "name": "JIRAUserCredentials",
+      "description": null,
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "owner": null,
+      "version": 1,
+      "keys": {},
+      "values": {},
+      "tags": {}
+    }
+  ],
+  "commands": [
+    {
+      "configuration": {
+        "values": [],
+        "output": {},
+        "executors": [],
+        "listeners": []
+      },
+      "id": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+      "name": "AutopilotServiceUser",
+      "description": null,
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "version": 1,
+      "inputKeys": {},
+      "outputKeys": {},
+      "tags": {}
+    },
+    {
+      "configuration": {
+        "values": [
+          {
+            "alias": "serviceUser",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+              "inputKey": "username"
+            }
+          },
+          {
+            "alias": "servicePassword",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+              "inputKey": "password"
+            }
+          }
+        ],
+        "output": {
+          "output": "$([range(.Get-Outputs.output.outputs | length)] | map({\"finalOutput\": $.Get-Outputs.output.outputs[.] }))",
+          "refinedOutput": "$([range(.Get-Outputs.output.outputs | length)] | map({\"finalOutput\": $.Get-Outputs.output.outputs[.].output.output}))"
+        },
+        "executors": [
+          {
+            "execute": "utils-sapcp:ForEach:2",
+            "input": {
+              "inputMapping": "{\"password\":\"$(.servicePassword)\",\"values\":\"{\\\"issueIDs\\\":\\\"$(.Get-Jira-Issue-Details.current.item | toEscapedJson)\\\"}\",\"user\":\"$(.serviceUser)\",\"command\":\"BUD-T001330R2:GetIssueDetailsSerial:1\"}",
+              "inputs": "$(.execution.input.issueIDs)",
+              "command": "autopi-sapcp:TriggerExecution:1"
+            },
+            "alias": "Get-Jira-Issue-Details",
+            "description": null,
+            "progressMessage": null,
+            "initialDelay": null,
+            "pause": null,
+            "when": null,
+            "validate": null,
+            "autoRetry": null,
+            "repeat": null,
+            "errorMessages": [],
+            "dryRun": null
+          },
+          {
+            "execute": "utils-sapcp:ForEach:1",
+            "input": {
+              "inputs": "$([.Get-Jira-Issue-Details.output.outputs[] | {\"execution\": .execution}])",
+              "defaultValues": "{\"user\": \"$(.serviceUser)\", \"password\": \"$(.servicePassword)\"}",
+              "command": "autopi-sapcp:WaitExecutionStatus:1"
+            },
+            "alias": "Wait-Execution-Status",
+            "description": null,
+            "progressMessage": null,
+            "initialDelay": null,
+            "pause": null,
+            "when": null,
+            "validate": null,
+            "autoRetry": {
+              "maxCount": 10,
+              "delay": "5s",
+              "logic": "FIXED",
+              "applyOnValidation": false,
+              "when": {
+                "semantic": "OR",
+                "conditions": [
+                  {
+                    "semantic": "OR",
+                    "cases": [
+                      {
+                        "expression": "$(.execution.error.originalMessage)",
+                        "operator": "EQUALS",
+                        "semantic": "OR",
+                        "values": [
+                          "Connectivity timeout issue"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "repeat": null,
+            "errorMessages": [],
+            "dryRun": null
+          },
+          {
+            "execute": "utils-sapcp:ForEach:1",
+            "input": {
+              "inputs": "$([.Get-Jira-Issue-Details.output.outputs[] | {\"execution\": .execution}])",
+              "defaultValues": "{\"user\": \"$(.serviceUser)\", \"password\": \"$(.servicePassword)\"}",
+              "command": "autopi-sapcp:GetExecutionOutput:1"
+            },
+            "alias": "Get-Outputs",
+            "description": null,
+            "progressMessage": null,
+            "initialDelay": null,
+            "pause": null,
+            "when": null,
+            "validate": null,
+            "autoRetry": {
+              "maxCount": 10,
+              "delay": "5s",
+              "logic": "FIXED",
+              "applyOnValidation": false,
+              "when": {
+                "semantic": "OR",
+                "conditions": [
+                  {
+                    "semantic": "OR",
+                    "cases": [
+                      {
+                        "expression": "$(.execution.error.originalMessage)",
+                        "operator": "EQUALS",
+                        "semantic": "OR",
+                        "values": [
+                          "Connectivity timeout issue"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "repeat": null,
+            "errorMessages": [],
+            "dryRun": null
+          }
+        ],
+        "listeners": []
+      },
+      "id": "BUD-<<<TENANT_ID>>>:BatchingJobParallel:1",
+      "name": "BatchingJobParallel",
+      "description": "This Job will provide details of MI2C Incident IDs",
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "version": 1,
+      "inputKeys": {
+        "issueIDs": {
+          "type": "array",
+          "sensitive": false,
+          "required": false,
+          "minSize": null,
+          "maxSize": null,
+          "minValue": null,
+          "maxValue": null,
+          "allowedValues": null,
+          "allowedValuesFromInputKeys": null,
+          "suggestedValues": null,
+          "suggestedValuesFromInputKeys": null,
+          "defaultValue": null,
+          "defaultValueFromInput": null,
+          "description": "List of MI2C Incident IDs"
+        }
+      },
+      "outputKeys": {
+        "output": {
+          "type": "array",
+          "sensitive": false,
+          "description": null
+        },
+        "refinedOutput": {
+          "type": "array",
+          "sensitive": false,
+          "description": null
+        }
+      },
+      "tags": {}
+    },
+    {
+      "configuration": {
+        "values": [
+          {
+            "alias": "jiraUser",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:JIRAUserCredentials:1",
+              "inputKey": "username"
+            }
+          },
+          {
+            "alias": "jiraPassword",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:JIRAUserCredentials:1",
+              "inputKey": "password"
+            }
+          },
+          {
+            "alias": "serviceUser",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+              "inputKey": "username"
+            }
+          },
+          {
+            "alias": "servicePassword",
+            "valueFrom": {
+              "inputReference": "BUD-<<<TENANT_ID>>>:AutopilotServiceUser:1",
+              "inputKey": "password"
+            }
+          }
+        ],
+        "output": {
+          "output": "$([range(.Get-Issue-IDs.output.outputs | length)] | map({\"issueData\": $.Get-Issue-IDs.output.outputs[.].issueData} | toPrettyJsonString))"
+        },
+        "executors": [
+          {
+            "execute": "utils-sapcp:ForEach:2",
+            "input": {
+              "inputMapping": "{\"password\":\"$(.jiraPassword)\",\"jiraServer\":\"$(.execution.input.jiraServer)\",\"issue\":\"$(.Get-Issue-IDs.current.item)\",\"fields\":\"customfield_22441,customfield_22961,customfield_22962,customfield_23041,customfield_10243,customfield_13641,customfield_22955, customfield_21441,customfield_35841,customfield_35842,-comment,labels,created,updated,components,-summary,-project,-issuetype\",\"user\":\"$(.jiraUser)\"}",
+              "inputs": "$(.execution.input.issueIDs)",
+              "command": "jira-sapcp:GetJiraIssue:1"
+            },
+            "alias": "Get-Issue-IDs",
+            "description": null,
+            "progressMessage": null,
+            "initialDelay": null,
+            "pause": null,
+            "when": null,
+            "validate": null,
+            "autoRetry": null,
+            "repeat": null,
+            "errorMessages": [],
+            "dryRun": null
+          }
+        ],
+        "listeners": []
+      },
+      "id": "BUD-<<<TENANT_ID>>>:GetIssueDetailsSerial:1",
+      "name": "GetIssueDetailsSerial",
+      "description": null,
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "version": 1,
+      "inputKeys": {
+        "jiraServer": {
+          "type": "string",
+          "sensitive": false,
+          "required": false,
+          "minSize": null,
+          "maxSize": null,
+          "minValue": null,
+          "maxValue": null,
+          "allowedValues": null,
+          "allowedValuesFromInputKeys": null,
+          "suggestedValues": null,
+          "suggestedValuesFromInputKeys": null,
+          "defaultValue": "jira.tools.sap",
+          "defaultValueFromInput": null,
+          "description": null
+        },
+        "issueIDs": {
+          "type": "array",
+          "sensitive": false,
+          "required": false,
+          "minSize": null,
+          "maxSize": null,
+          "minValue": null,
+          "maxValue": null,
+          "allowedValues": null,
+          "allowedValuesFromInputKeys": null,
+          "suggestedValues": null,
+          "suggestedValuesFromInputKeys": null,
+          "defaultValue": null,
+          "defaultValueFromInput": null,
+          "description": "List of MI2C Incident IDs"
+        }
+      },
+      "outputKeys": {
+        "output": {
+          "type": "array",
+          "sensitive": false,
+          "description": null
+        }
+      },
+      "tags": {}
+    },
+    {
+      "configuration": {
+        "values": [],
+        "output": {},
+        "executors": [],
+        "listeners": []
+      },
+      "id": "BUD-<<<TENANT_ID>>>:JIRAUserCredentials:1",
+      "name": "JIRAUserCredentials",
+      "description": null,
+      "catalog": "BUD-<<<TENANT_ID>>>",
+      "version": 1,
+      "inputKeys": {},
+      "outputKeys": {},
+      "tags": {}
+    }
+  ]
+}
